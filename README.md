@@ -15,7 +15,8 @@ Network-wide ad and tracker blocking for all home devices using a Raspberry Pi 4
 Internet
     │
     ▼
-Netgear M70 Mesh Router
+Home Mesh/WiFi Router  (tested on Netgear M70; compatible with any
+    │  router that supports custom DHCP DNS and firewall/port rules)
     │  ← Firewall layer:
     │     • Blocks outbound port 853 (DNS-over-TLS)
     │     • Blocks outbound port 53 to non-Pi destinations
@@ -31,6 +32,8 @@ ALL devices — zero configuration required on any device
 iPhone  ·  iPad  ·  Apple TV  ·  Android phone  ·  Android TV
 Fire TV  ·  Chromecast  ·  Smart TV  ·  PS5  ·  Xbox  ·  Smart home
 ```
+
+> **Router compatibility:** The solution works with any home router that allows: (a) setting custom DNS IPs in DHCP settings, (b) DHCP address reservation by MAC address, and (c) basic outbound port blocking. This covers virtually all consumer and prosumer routers (Netgear, TP-Link, Asus, Linksys, Ubiquiti, Eero, Google Nest WiFi, etc.). Phase 3 firewall steps include generic instructions with router-specific examples.
 
 ---
 
