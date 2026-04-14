@@ -1,69 +1,94 @@
 # Phase 6 — Verification, Testing, and Maintenance
 
 **GitHub Issue:** #6  
-**Dependencies:** Phases 1–5 (run after all other phases)  
-**Estimated time:** 1–2 hours  
+**Dependencies:** All phases (1–5) should be complete before running this phase  
+**Device action required:** None  
+
+> ⚠️ **Constraints**
+> - No jailbreaking of any device (iOS, iPadOS, tvOS, Android)
+> - No per-device app installation or configuration
+> - All filtering is applied at the network layer only
 
 ---
 
 ## Goal
 
-Confirm the full stack is working correctly across all device types, and document the ongoing maintenance routine to keep everything effective.
+Confirm the full network-level ad blocking stack is working correctly across all device types, verify that DNS bypass routes are closed, and document the ongoing maintenance routine.
 
 ---
 
 ## Post-Setup Verification Checklist
 
-### Network Layer (Phase 1–2)
+### 1. AdGuard Home Dashboard
 
-Run these checks from the AdGuard Home web UI at `http://192.168.1.2`:
+Open `http://192.168.1.2` from any browser on the network.
 
-- [ ] **Dashboard**: query count is growing, blocked percentage is visible (expect 20–40% after 24h of normal use)
-- [ ] **Per-Client Statistics**: all device types visible — phones, tablets, TVs, consoles, smart home devices
-- [ ] **Blocklists**: all lists show green (last updated recently)
-- [ ] **Custom rules**: no syntax errors shown
+- [ ] **Dashboard**: query count is growing; blocked percentage shows (expect 20–40% after 24h of normal household use)
+- [ ] **Blocklists**: all lists show green status with recent update timestamps
+- [ ] **Custom rules**: no syntax errors shown (yellow warning icon would indicate an issue)
+- [ ] **Upstream DNS**: test upstream servers — all should return green in Settings > DNS Settings
 
-Run these from a terminal on your PC:
+### 2. DNS Resolution Tests (from PC terminal)
+
 ```bash
-# Should resolve normally
+# These should resolve normally (not blocked)
 nslookup google.com 192.168.1.2
+nslookup youtube.com 192.168.1.2
+nslookup netflix.com 192.168.1.2
 
-# Should return 0.0.0.0 (blocked)
+# These should return 0.0.0.0 (blocked)
 nslookup doubleclick.net 192.168.1.2
 nslookup spotxchange.com 192.168.1.2
 nslookup video.fwmrm.net 192.168.1.2
-nslookup imasdk.googleapis.com 192.168.1.2
+nslookup dai.google.com 192.168.1.2
+nslookup rtr.innovid.com 192.168.1.2
+nslookup innovid.com 192.168.1.2
+nslookup springserve.com 192.168.1.2
+nslookup mask.icloud.com 192.168.1.2
 ```
 
-### Browser Test
+### 3. Ad Block Test (from any connected device browser)
 
-From any device, visit: https://d3ward.github.io/toolz/adblock
+Visit: `https://d3ward.github.io/toolz/adblock`
 
-Expected score: **80%+ with DNS only**, **90%+ with DNS + browser extension (uBlock Origin)**
+Expected score: **80%+** with DNS only. This score will vary because it tests browser-level blocking — the DNS layer handles what it can at the network level.
 
-### Per-Device Spot Checks
+### 4. Per-Device DNS Verification (Critical — Phase 3 Confirmation)
 
-| Device | Test | Expected Result |
-|--------|------|----------------|
-| Android phone (ReVanced) | Open YouTube, start a video | No pre-roll ad, instant playback |
-| Android phone (AdGuard) | Browse news site | No banner ads visible |
-| iPhone / iPad | Browse news site in Safari | No banner ads visible |
-| Android TV (SmartTube) | Open YouTube, start a video | No ad, instant playback |
-| Android TV (Tubi) | Start any video | Ad break skipped or brief spinner then content |
-| Gaming console | Browse YouTube | Ads may appear — expected, no Layer 2 available |
-| Smart TV | Open any streaming app | Reduced trackers; in-stream ads may persist |
-| Desktop browser | Open YouTube in Chrome + uBlock Origin | No ads |
+In AdGuard Home → **Query Log** and **Client Statistics**:
 
-### 48-Hour Streaming Stability Check
+- [ ] **iPhone / iPad**: the device's IP appears in per-client stats with DNS query activity → confirms iCloud Private Relay is blocked
+- [ ] **Apple TV**: the device's IP appears in per-client stats → confirms Private Relay blocked, Pi DNS active
+- [ ] **Android phone/tablet**: device appears in stats → confirms Private DNS (port 853) bypass is blocked
+- [ ] **Android TV / Chromecast / Fire TV**: device appears in stats
+- [ ] **Smart TVs** (Samsung, LG, etc.): device appears in stats
+- [ ] **Gaming consoles** (PS5, Xbox): device appears in stats
+- [ ] **Smart home / IoT devices**: devices appear in stats
 
-After enabling custom rules from Phase 2, monitor:
+**If any device does NOT appear in the query log**, it is bypassing the Pi. Troubleshoot using the table in the Troubleshooting section below.
+
+### 5. iCloud Private Relay Verification
+
+On an iPhone or iPad connected to the home network:
+- Go to **Settings > Apple ID > iCloud > Private Relay**
+- If Phase 3 is working correctly, the status will show **"Private Relay is not available on this network"** or a similar message indicating it is blocked
+- This is expected and correct — the network is enforcing DNS filtering
+
+On an Apple TV:
+- Settings > Privacy > iCloud Private Relay (if the option exists) should similarly show unavailable
+
+### 6. Streaming Service Spot Checks (48-Hour Window)
+
+After Phase 2 SSAI rules are active, monitor these services:
 
 | Service | Watch For | Action If Triggered |
 |---------|-----------|-------------------|
+| Tubi / Pluto TV | Ad break shows brief black screen then content resumes | Normal — ad decision server timed out |
+| Tubi / Pluto TV | Ad break skips entirely | Ideal outcome |
 | Hulu | Stream pauses at ad break and never resumes | Remove `adstats.hulu.com` and `pixiedust.hulu.com` from custom rules |
 | Prime Video | "Playback error" at ad slots | Remove `fls-na.amazon.com` from custom rules |
-| Tubi | 5–10 second spinner then content resumes | Normal — ad server timed out, content plays |
-| Peacock | Login page fails to load | Check query log, whitelist any blocked auth domain |
+| Peacock | Login/account page fails | Check query log, whitelist the blocked auth domain |
+| Any service | Black segment of 2–5 seconds then content | Acceptable — ad decision timed out cleanly |
 
 ---
 
@@ -71,54 +96,42 @@ After enabling custom rules from Phase 2, monitor:
 
 ### Monthly Tasks
 
-**AdGuard Home blocklist updates:**
-- In AdGuard Home → **Filters > DNS Blocklists**
-- Click **Update** on each list, or enable auto-update:
-  - Each list has an **Update interval** setting — set to `3 days` or `1 week`
+**Update AdGuard Home blocklists:**
+- AdGuard Home → **Filters > DNS Blocklists**
+- Click **Update** on each list, or set auto-update interval per list (recommended: **3 days**)
 
-**Check for new false positives:**
-- Review AdGuard Home **Query Log** occasionally
-- If a service stops working, filter the log by that device's IP and look for blocked red entries
+**Review false positives:**
+- Occasionally check AdGuard Home → **Query Log** for any legitimate services being blocked
+- If something stops working, filter the log by that device's IP and look for red (blocked) entries near the time of the issue
+- Unblock with: `@@||the-domain.com^` in custom rules
 
-### As-Needed Tasks
-
-**ReVanced re-patch (Android YouTube):**
-
-When YouTube updates and ReVanced stops working:
-1. Open ReVanced Manager
-2. Tap **Patcher** — it detects the new YouTube version
-3. Re-patch with default patches
-4. Install the new patched APK (~5 minutes)
-
-Frequency: roughly monthly when YouTube updates.
-
-**SmartTube update (Android TV):**
-
-SmartTube has an in-app update checker. When a new version is available:
-1. The app will notify you
-2. Or check https://github.com/yuliskov/SmartTube/releases for the latest APK
-3. Install via ADB: `adb install -r smarttube_stable.apk` (the `-r` flag reinstalls without removing)
-
-**AdGuard for Android / TV updates:**
-- AdGuard has a built-in update checker
-- Or re-download the APK from adguard.com and install over the existing version
-
-### Raspberry Pi Maintenance
+### Raspberry Pi OS Maintenance
 
 ```bash
-# Monthly: update the OS
 ssh <user>@192.168.1.2
+
+# Monthly OS update
 sudo apt update && sudo apt upgrade -y
 
-# Check AdGuard Home service health
+# Check AdGuard Home service
 sudo systemctl status AdGuardHome
 
-# Check disk usage (should stay well below MicroSD capacity)
+# Disk usage check (MicroSD wear monitoring)
 df -h /
 
-# Check Pi temperature (should stay below 70°C under normal load)
+# Temperature check (should stay below 70°C)
 vcgencmd measure_temp
 ```
+
+### AdGuard Home Configuration Backup
+
+After completing all phases and verifying everything works, export the AdGuard Home configuration:
+
+- AdGuard Home → **Settings > Configuration**
+- Click **Export configuration**
+- Save `AdGuardHome.yaml` securely (do not commit to a public repo — it contains your admin credentials)
+
+To restore after a Pi rebuild: run the Phase 1 installer, then import this file.
 
 ---
 
@@ -126,34 +139,25 @@ vcgencmd measure_temp
 
 | Problem | Diagnosis | Fix |
 |---------|-----------|-----|
-| A device is not being filtered | Check if device IP shows in AdGuard Home per-client view | Device may have hardcoded DNS (8.8.8.8). Force it to use router DNS in device network settings, or set DNS manually to `192.168.1.2` |
-| All DNS stops working | Pi is down or AdGuard Home crashed | SSH to Pi, run `sudo systemctl restart AdGuardHome`. Router falls back to `94.140.14.14` (secondary DNS set in Phase 1) |
-| A specific website/app broken | Blocklist false positive | Check query log for that device, whitelist the blocked domain with `@@||domain.com^` |
+| A device doesn't appear in AdGuard Home client stats | Device is bypassing the Pi DNS | Check: (1) iCloud Private Relay — Phase 3 Step 2; (2) Android Private DNS — Phase 3 Step 4; (3) Hardcoded DNS app — Phase 3 Step 1B |
+| iPhone shows "Private Relay not available" but still no queries in log | Private Relay blocked but device using mobile data (not WiFi) | Ensure device is on home WiFi, not cellular |
+| All DNS stops working for all devices | Pi is down or AdGuard Home crashed | SSH to Pi: `sudo systemctl restart AdGuardHome`. Router falls back to secondary DNS `94.140.14.14` automatically |
+| Specific website/app broken after Phase 2 | Blocklist false positive | Check query log for that device's IP → whitelist the blocked domain: `@@||domain.com^` |
+| Hulu stream stalls at ad break | Innovid/Hulu rules too aggressive | Remove `innovid.com` rules from custom rules; leave FreeWheel rules intact |
+| Tubi/Pluto TV stream stalls (not just brief spinner) | FreeWheel timeout too long for this service | Remove `video.fwmrm.net` rule; re-add only the Innovid rules |
 | AdGuard Home web UI unreachable | Service crashed | `sudo systemctl restart AdGuardHome` |
-| Pi won't boot after SD card write error | MicroSD wear | Replace with fresh MicroSD and re-run Phase 1 (consider USB SSD for longer lifespan) |
-| ReVanced YouTube shows ads again | YouTube app updated, patch stale | Re-patch via ReVanced Manager |
-| SmartTube not available in TV launcher | APK install failed | Re-run `adb install smarttube_stable.apk` |
+| Pi won't boot | MicroSD wear/corruption | Replace MicroSD with new card; re-run Phase 1 (import backup config from Step above) |
+| Smart TV or console still getting many ads | SSAI cannot be fully blocked at DNS level | Expected — see feasibility table in README. The DNS layer achieves what is technically possible |
 
 ---
 
-## Backup: Export AdGuard Home Configuration
+## System Is Operational
 
-After completing Phases 1–2 and confirming everything works, export the config so you can restore quickly if the Pi needs to be rebuilt:
+When all checklist items above are green, the network ad blocking system is fully operational:
 
-In AdGuard Home → **Settings > Configuration**:
-- Click **Export configuration**
-- Save the `AdGuardHome.yaml` file securely (do not commit to a public repo — it contains your admin credentials)
-
-To restore: re-run the AdGuard Home installer (Phase 1, Step 5), then import the exported config file.
-
----
-
-## Full System Is Operational
-
-At this point your setup delivers:
-- Network-wide DNS ad and tracker blocking for every device automatically
-- 100% YouTube ad blocking on Android phones (ReVanced) and Android TV devices (SmartTube)
-- Maximum achievable ad reduction on iOS via AdGuard Pro
-- Device-level HTTPS filtering on Android phones and Android TV via AdGuard
-- Encrypted DNS upstream (Quad9 + Cloudflare DoH) — ISP cannot see your DNS queries
-- Partial in-stream ad disruption on Tubi, Pluto TV, and Peacock via SSAI endpoint blocking
+- Every device on the network has DNS filtered through the Pi automatically
+- No device has been modified, jailbroken, or individually configured
+- iCloud Private Relay and Android Private DNS bypasses are closed at the network level
+- Trackers, telemetry, banner ads, and mobile in-app ads are blocked network-wide (~85–95%)
+- SSAI ad decision servers are blocked, disrupting in-stream ads on supported platforms
+- Apple TV, iPhones, iPads are covered with zero device interaction

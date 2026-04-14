@@ -4,6 +4,11 @@
 **Dependencies:** Phase 1 complete (AdGuard Home running)  
 **Estimated time:** 30–45 minutes  
 
+> ⚠️ **Constraints**
+> - No jailbreaking of any device (iOS, iPadOS, tvOS, Android)
+> - No per-device app installation or configuration
+> - All filtering is applied at the network layer only
+
 ---
 
 ## Goal
@@ -102,9 +107,68 @@ Paste all of the following:
 ||hotjar.com^
 ||mouseflow.com^
 ||heapanalytics.com^
+
+# ── Google DAI / Dynamic Ad Insertion (SSAI — used by many streaming platforms) ──
+||dai.google.com^
+||googleads.g.doubleclick.net^
+||securepubads.g.doubleclick.net^
+
+# ── Innovid (SSAI platform — used by Hulu, Peacock, A&E, History Channel, etc.) ──
+||rtr.innovid.com^
+||csm.dai.innovid.com^
+||pb.innovid.com^
+||a.innovid.com^
+||innovid.com^
+
+# ── Springserve (SSAI/programmatic — Tubi and others) ──
+||springserve.com^
+||*.springserve.com^
+
+# ── Magnite / Rubicon Project (programmatic SSAI decisions) ──
+||prebid-server.rubiconproject.com^
+||fastlane.rubiconproject.com^
+
+# ── The Trade Desk (demand-side SSAI decisions) ──
+||match.adsrvr.org^
+||insight.adsrvr.org^
+||sync.adsrvr.org^
+
+# ── Index Exchange ──
+||js-sec.indexww.com^
+||ssum-sec.casalemedia.com^
+
+# ── LiveRamp (identity resolution for ad targeting) ──
+||idsync.rlcdn.com^
+||api.rlcdn.com^
+
+# ── Yospace (SSAI middleware — used by broadcast streaming services) ──
+||csm.yospace.com^
+||yospace.com^
+
+# ── Amazon Publisher Services (APS — Prime Video SSAI decisions) ──
+||c.amazon-adsystem.com^
+||s.amazon-adsystem.com^
+||aax-us-east.amazon-adsystem.com^
+
+# ── Unruly / Tremor Video ──
+||targeting.unrulymedia.com^
+||tremormedia.com^
+||unrulymedia.com^
+
+# ── iCloud Private Relay (forces Apple devices back to Pi DNS) ──
+||mask.icloud.com^
+||mask-h2.icloud.com^
+||mask-api.icloud.com^
+||doh.dns.apple.com^
+||dnsstar.apple.com^
 ```
 
 Click **Save**.
+
+> **SSAI blocking behavior note:** When an SSAI ad decision server is blocked, the streaming service backend cannot retrieve the ad manifest. Depending on the platform's error handling:
+> - **Best case**: the ad slot is skipped entirely and content resumes immediately
+> - **Typical case**: the player waits for a timeout (2–5 seconds of silence/black) then resumes content
+> - **Worst case**: the stream stalls indefinitely — roll back the specific domain causing the stall
 
 ---
 
