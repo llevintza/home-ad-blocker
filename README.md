@@ -42,6 +42,15 @@ Fire TV  ·  Chromecast  ·  Smart TV  ·  PS5  ·  Xbox  ·  Smart home
 1. **Immediate partial win (no hardware needed yet):** Set your Netgear router's DNS to `94.140.14.14` / `94.140.15.15` (AdGuard public DNS). Most banner ads and trackers will be blocked across all devices within minutes.
 2. **Full setup:** Follow the phases in order, starting with [Phase 1](plans/phase-1-adguard-setup.md).
 
+> **Caveat for step 1: no allowlist.** AdGuard's public servers block every domain on their list for every device, and you can't make exceptions. Analytics and tracker dashboards you use yourself (e.g. Umami Cloud at `cloud.umami.is`) then fail network-wide with a "can't connect" or proxy error that looks like an outage.
+> - **Check:** `dig +short <name> @<router-ip>` returns `0.0.0.0` while `dig +short <name> @1.1.1.1` returns real addresses. The router's answer also carries the Extended DNS Error "Filtered" code (EDE 17).
+> - **Options:**
+>   - Open that one site with your browser's secure DNS (Chrome: Settings → Privacy and security → Security → Use secure DNS).
+>   - Switch the router to AdGuard's non-filtering servers `94.140.14.140` / `94.140.14.141`, or back to *Get Automatically from ISP*. Either turns off the interim blocking.
+>   - Real fix: move on to the Pi (Phase 1/2), where AdGuard Home has an allowlist.
+> - Applying a WAN DNS change on the router briefly interrupts the internet (no reboot expected), so don't do it during a call. Afterwards, flush client DNS caches (macOS: `sudo dscacheutil -flushcache; sudo killall -HUP mDNSResponder`).
+> - Field report: [netgear-ax3000-mesh-router findings §11](https://github.com/llevintza/netgear-ax3000-mesh-router/blob/main/docs/findings.md).
+
 ---
 
 ## Feasibility & Network-Layer Ceiling
